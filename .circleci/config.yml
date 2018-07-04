@@ -90,7 +90,7 @@ jobs:
 workflows:
   version: 2
 
-  commit:
+  push:
     jobs:
       - build_docker
 
@@ -104,6 +104,6 @@ workflows:
                 - master
     jobs:
       - check_clockout
-      - post
+      - post:
           requires:
             - check_clockout
