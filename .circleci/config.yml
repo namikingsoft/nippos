@@ -81,6 +81,11 @@ jobs:
     <<: *docker_container
     steps:
       - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - *restore_image_cache
+      - *input_image_cache
+      - *build_image
       - run:
           name: Check clockout from slack
           command: |
