@@ -16,9 +16,17 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Build application Docker image
+          name: Build docker image
           command: |
             docker build -t nippos .
+      - run:
+          name: Cache docker images
+          command: |
+            mkdir -p ~/caches
+            docker save $(docker images -q) -o ~/caches/images.tar
+      - save_cache:
+          key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
+          paths: ~/caches/images.tar
 
   test:
     <<: *docker_container
@@ -26,6 +34,14 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
+      - restore_cache:
+          key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
+          paths: ~/caches/images.tar
+      - run:
+          name: Load docker images
+          command: |
+            set +o pipefail
+            docker load -i ~/caches/images.tar | true
       - run:
           name: Build application Docker image
           command: |
