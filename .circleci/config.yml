@@ -18,7 +18,7 @@ jobs:
       - run:
           name: Build application Docker image
           command: |
-            docker-compose build
+            docker build -t nippos .
 
   test:
     <<: *docker_container
