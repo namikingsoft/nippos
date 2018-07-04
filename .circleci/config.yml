@@ -42,6 +42,7 @@ jobs:
           command: |
             set +o pipefail
             docker load -i ~/caches/images.tar | true
+            docker images
       - run:
           name: Build application Docker image
           command: |
