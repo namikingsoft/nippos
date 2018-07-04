@@ -24,6 +24,22 @@ jobs:
     <<: *docker_container
     steps:
       - checkout
+      - run:
+          name: Build application Docker image
+          command: |
+            docker run \
+              -e PARAGRAPH_JSON \
+              -e SLACK_TOKEN \
+              -e SLACK_DOMAIN \
+              -e SLACK_USER_ID \
+              -e SLACK_CHANNEL_ID \
+              -e SLACK_CHANNEL_TYPE \
+              -e SLACK_CHANNEL_TYPE \
+              -e QIITA_TOKEN \
+              -e QIITA_DOMAIN \
+              -e QIITA_TITLE \
+              -e QIITA_TAGS \
+              -it nippos sh -c 'hh2md | postm' > /dev/null
 
 workflows:
   version: 2
