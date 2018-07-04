@@ -7,6 +7,36 @@ references:
       - image: docker
     working_directory: ~/project
 
+  - &build_image
+    run:
+      name: Build docker image
+      command: |
+        docker build -t nippos .
+
+  - &output_image_cache
+    run:
+      name: Output docker images cache
+      command: |
+        mkdir -p ~/caches
+        docker save $(docker images -q) -o ~/caches/images.tar
+
+  - &input_image_cache
+    run:
+      name: Input docker images cache
+      command: |
+        set +o pipefail
+        docker load -i ~/caches/images.tar | true
+
+  - &save_image_cache
+    save_cache:
+      key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
+      paths: ~/caches/images.tar
+
+  - &restore_image_cache
+     restore_cache:
+      key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
+      paths: ~/caches/images.tar
+
 jobs:
 
   build_docker:
@@ -15,19 +45,11 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
-          name: Build docker image
-          command: |
-            docker build -t nippos .
-      - run:
-          name: Cache docker images
-          command: |
-            mkdir -p ~/caches
-            docker save $(docker images -q) -o ~/caches/images.tar
-            docker images
-      - save_cache:
-          key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
-          paths: ~/caches/images.tar
+      - *restore_image_cache
+      - *input_image_cache
+      - *build_image
+      - *output_image_cache
+      - *save_image_cache
 
   test:
     <<: *docker_container
@@ -35,15 +57,9 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - restore_cache:
-          key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
-          paths: ~/caches/images.tar
-      - run:
-          name: Load docker images
-          command: |
-            set +o pipefail
-            docker load -i ~/caches/images.tar | true
-            docker images
+      - *restore_image_cache
+      - *input_image_cache
+      - *build_image
       - run:
           name: Build application Docker image
           command: |
