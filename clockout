@@ -1,0 +1,72 @@
+#!/bin/sh -eu
+
+opt=$(getopt -o "" -l token:,domain:,userid:,channelid:,channeltype:,date: -- "$@")
+eval set -- "$opt"
+until [ "$1" = "--" ]; do
+  case $1 in
+    --token) slack_token="$2" ;;
+    --domain) slack_domain="$2" ;;
+    --userid) slack_user_id="$2" ;;
+    --channelid) slack_channel_id="$2" ;;
+    --channeltype) slack_channel_type="$2" ;;
+    --date) slack_date="$2" ;;
+  esac
+  shift
+done
+
+slack_token="${slack_token:-$SLACK_TOKEN}"
+slack_domain="${slack_domain:-$SLACK_DOMAIN}"
+slack_user_id="${slack_user_id:-$SLACK_USER_ID}"
+slack_channel_id="${slack_channel_id:-$SLACK_CHANNEL_ID}"
+slack_channel_type="${slack_channel_type:-${SLACK_CHANNEL_TYPE:-channels}}"
+slack_date="${slack_date:-${SLACK_DATE:-undef}}"
+
+start_ts=$(
+  if [ "undef" = "$slack_date" ]
+    then date -d "$(date "+%Y-%m-%d") 00:00:00" "+%s"
+    else date -d "${slack_date} 00:00:00" "+%s"
+  fi
+)
+end_ts=$(
+  if [ "undef" = "$slack_date" ]
+    then date -d "$(date "+%Y-%m-%d") 23:59:59" "+%s"
+    else date -d "${slack_date} 23:59:59" "+%s"
+  fi
+)
+
+clockout_items=$(
+  curl --silent \
+    -X GET "https://slack.com/api/${slack_channel_type}.history?token=${slack_token}&channel=${slack_channel_id}&count=1000&oldest=${start_ts}&latest=${end_ts}" \
+  | jq -r "
+    [
+      .messages
+      | .[]
+      | select(
+          (.reactions != null) and
+          (.reactions[].users[] == \"${slack_user_id}\") and
+          (.reactions[].name == \"timer_clock\")
+        )
+    ]
+    | unique_by(.ts)
+    | .[]
+    | @base64
+  "
+)
+
+result_code=1
+for row in $clockout_items; do
+  ts=$(echo "$row" | base64 --decode | jq -r .ts)
+  ok=$(
+    curl --silent \
+      -X POST "https://slack.com/api/reactions.remove?token=${slack_token}&name=timer_clock&channel=${slack_channel_id}&timestamp=${ts}" \
+    | jq -r .ok
+  )
+  if [ "$ok" = "true" ]; then
+    result_code=0
+    curl --silent \
+      -X POST "https://slack.com/api/reactions.add?token=${slack_token}&name=house&channel=${slack_channel_id}&timestamp=${ts}" || true
+    echo
+  fi
+done
+
+exit $result_code
