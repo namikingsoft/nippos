@@ -1,0 +1,36 @@
+version: 2
+
+references:
+
+  - &docker_container
+    docker:
+      - image: docker
+    working_directory: ~/project
+
+jobs:
+
+  build_docker:
+    <<: *docker_container
+    steps:
+      - checkout
+      - setup_remote_docker:
+          reusable: true
+      - run:
+          name: Build application Docker image
+          command: |
+            docker-compose build
+
+  test:
+    <<: *docker_container
+    steps:
+      - checkout
+
+workflows:
+  version: 2
+
+  commit:
+    jobs:
+      - build_docker
+      - test:
+          requires:
+            - build_docker

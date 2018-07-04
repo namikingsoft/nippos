@@ -1,0 +1,98 @@
+#!/bin/sh -eu
+
+opt=$(getopt -o "" -l token:,domain:,userid:,channelid:,channeltype:,date: -- "$@")
+eval set -- "$opt"
+until [ "$1" = "--" ]; do
+  case $1 in
+    --token) slack_token="$2" ;;
+    --domain) slack_domain="$2" ;;
+    --userid) slack_user_id="$2" ;;
+    --channelid) slack_channel_id="$2" ;;
+    --channeltype) slack_channel_type="$2" ;;
+    --date) slack_date="$2" ;;
+  esac
+  shift
+done
+
+slack_token="${slack_token:-$SLACK_TOKEN}"
+slack_domain="${slack_domain:-$SLACK_DOMAIN}"
+slack_user_id="${slack_user_id:-$SLACK_USER_ID}"
+slack_channel_id="${slack_channel_id:-$SLACK_CHANNEL_ID}"
+slack_channel_type="${slack_channel_type:-${SLACK_CHANNEL_TYPE:-channels}}"
+slack_date="${slack_date:-${SLACK_DATE:-undef}}"
+
+start_ts=$(
+  if [ "undef" = "$slack_date" ]
+    then date -d "$(date "+%Y-%m-%d") 00:00:00" "+%s"
+    else date -d "${slack_date} 00:00:00" "+%s"
+  fi
+)
+end_ts=$(
+  if [ "undef" = "$slack_date" ]
+    then date -d "$(date "+%Y-%m-%d") 23:59:59" "+%s"
+    else date -d "${slack_date} 23:59:59" "+%s"
+  fi
+)
+
+[ -p /dev/stdin ] && paragraph_json=$(cat --)
+paragraph_json="${paragraph_json:-$PARAGRAPH_JSON}"
+
+history_json_base64=$(
+  curl --silent \
+    -X GET "https://slack.com/api/${slack_channel_type}.history?token=${slack_token}&channel=${slack_channel_id}&count=1000&oldest=${start_ts}&latest=${end_ts}" \
+  | jq -r '. | @base64'
+)
+
+paragraph() {
+  type="$1"
+  headline="$2"
+  exfilter="$3"
+  echo "## ${headline}"
+  echo
+  filter_loop=$(
+    echo "$history_json_base64" \
+    | base64 --decode \
+    | jq -r "
+      [
+        .messages
+        | reverse
+        | .[]
+        | ${exfilter}
+        | select((.text != null) and (.text != \"\"))
+      ]
+      | unique_by(.ts)
+      | .[]
+      | @base64
+    "
+  )
+  for row in $filter_loop; do
+    ts=$(echo "$row" | base64 --decode | jq -r .ts)
+    timestamp=$(echo "$ts" | sed -E 's|\..*$||')
+    timelabel=$(date --date "@${timestamp}" "+%H:%M:%S")
+    permalink="https://${slack_domain}/messages/${slack_channel_id}/p$(echo "$ts" | sed -E 's|\.||')"
+    text=$(echo "$row" | base64 --decode | jq -r .text | sed -E 's|^<(https?:[^>]+\.png)>$|<img src="\1" />|g' | sed -E 's|<(https?:[^>]+)>|\[\1\]\(\1\)|g')
+    html=$(echo "${text}" | pandoc -f markdown+hard_line_breaks -t html | perl -0pe 's|^<p>||m')
+    if [ "$type" = "timeline" ]
+    then echo "<dl><dt>${timelabel} <a href=\"${permalink}\">:slack:</a></dt><dd>${html}</dd></dl>"
+    else echo "$text"
+    fi
+  done
+  echo
+}
+
+for row in $(echo "$paragraph_json" | jq -r ".[] | @base64"); do
+  json=$(echo "$row" | base64 --decode)
+  type=$(echo "$json" | jq -r .type)
+  title=$(echo "$json" | jq -r .title)
+  reaction=$(echo "$json" | jq -r .reaction)
+  filter="
+    (.reactions != null) and
+    (.reactions[].name == \"${reaction}\") and
+    (.reactions[].users[] == \"${slack_user_id}\")
+  "
+  paragraph "$type" "$title" "select(${filter})"
+done
+
+echo "<details><summary>**クリックで生作業ログを展開**</summary><div>"
+paragraph "timeline" "本日の生ログ" "select(.user != null)"
+echo "</div></details>"

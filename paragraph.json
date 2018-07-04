@@ -1,0 +1,22 @@
+[
+  {
+    "type": "plain",
+    "title": "TL;DR",
+    "reaction": "imakita"
+  },
+  {
+    "type": "timeline",
+    "title": "作業内容まとめ",
+    "reaction": "github"
+  },
+  {
+    "type": "timeline",
+    "title": "参考にした記事",
+    "reaction": "link"
+  },
+  {
+    "type": "timeline",
+    "title": "日記",
+    "reaction": "vrsaiko"
+  }
+]

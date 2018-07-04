@@ -1,0 +1,34 @@
+#!/bin/sh -eu
+
+opt=$(getopt -o "" -l token:,domain:,title:,tags:, -- "$@")
+eval set -- "$opt"
+until [ "$1" = "--" ]; do
+  case $1 in
+    --token) qiita_token="$2" ;;
+    --domain) qiita_domain="$2" ;;
+    --title) qiita_title="$2" ;;
+    --tags) qiita_tags="$2" ;;
+  esac
+  shift
+done
+
+qiita_token="${qiita_token:-$QIITA_TOKEN}"
+qiita_domain="${qiita_domain:-$QIITA_DOMAIN}"
+qiita_title="${qiita_title:-$QIITA_TITLE}"
+qiita_tags="${qiita_tags:-$QIITA_TAGS}"
+
+body=$(jo -a "$(cat --)" | cut -c 3- | sed -E 's/..$//')
+title=$(date "+${qiita_title}")
+tags_json="[$(
+  echo "$qiita_tags" \
+  | tr ' ' '\n' \
+  | xargs -I{} echo '{"name":"{}"}' \
+  | paste -s -d ',' -
+)]"
+
+curl --silent \
+  -H "Authorization: Bearer ${qiita_token}" \
+  -H "Content-type: application/json" \
+  -H "Accept: application/json" \
+  -d "{\"title\":\"${title}\",\"private\":true,\"body\":\"${body}\",\"tags\":$tags_json}" \
+  -X POST "https://${qiita_domain}/api/v2/items"
