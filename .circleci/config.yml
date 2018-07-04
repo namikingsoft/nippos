@@ -64,6 +64,7 @@ jobs:
           name: Build application Docker image
           command: |
             docker run \
+              -e TZ \
               -e PARAGRAPH_JSON \
               -e SLACK_TOKEN \
               -e SLACK_DOMAIN \
