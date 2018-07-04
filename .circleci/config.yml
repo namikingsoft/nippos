@@ -24,6 +24,8 @@ jobs:
     <<: *docker_container
     steps:
       - checkout
+      - setup_remote_docker:
+          reusable: true
       - run:
           name: Build application Docker image
           command: |
