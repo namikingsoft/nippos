@@ -93,3 +93,17 @@ workflows:
   push:
     jobs:
       - build_docker
+
+  clockout:
+    triggers:
+      - schedule:
+          cron: "5 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - check_clockout
+      - post:
+          requires:
+            - check_clockout
