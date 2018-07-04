@@ -24,6 +24,7 @@ jobs:
           command: |
             mkdir -p ~/caches
             docker save $(docker images -q) -o ~/caches/images.tar
+            docker images
       - save_cache:
           key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
           paths: ~/caches/images.tar
