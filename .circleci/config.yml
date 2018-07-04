@@ -51,7 +51,7 @@ jobs:
       - *output_image_cache
       - *save_image_cache
 
-  test:
+  post:
     <<: *docker_container
     steps:
       - checkout
@@ -78,12 +78,32 @@ jobs:
               -e QIITA_TAGS \
               -it nippos sh -c 'hh2md | postm' > /dev/null
 
+  check_clockout:
+    <<: *docker_container
+    steps:
+      - checkout
+      - run:
+          name: Check clockout from slack
+          command: |
+            exit 1
+
 workflows:
   version: 2
 
   commit:
     jobs:
       - build_docker
-      - test:
+
+  clockout:
+    triggers:
+      - schedule:
+          cron: "*/5 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - check_clockout
+      - post
           requires:
-            - build_docker
+            - check_clockout
