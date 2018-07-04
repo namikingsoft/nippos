@@ -61,7 +61,7 @@ jobs:
       - *input_image_cache
       - *build_image
       - run:
-          name: Build application Docker image
+          name: Post qiita from slack
           command: |
             docker run \
               -e TZ \
@@ -70,7 +70,6 @@ jobs:
               -e SLACK_DOMAIN \
               -e SLACK_USER_ID \
               -e SLACK_CHANNEL_ID \
-              -e SLACK_CHANNEL_TYPE \
               -e SLACK_CHANNEL_TYPE \
               -e QIITA_TOKEN \
               -e QIITA_DOMAIN \
@@ -85,7 +84,14 @@ jobs:
       - run:
           name: Check clockout from slack
           command: |
-            exit 1
+            docker run \
+              -e TZ \
+              -e SLACK_TOKEN \
+              -e SLACK_DOMAIN \
+              -e SLACK_USER_ID \
+              -e SLACK_CHANNEL_ID \
+              -e SLACK_CHANNEL_TYPE \
+              -it nippos clockout
 
 workflows:
   version: 2
