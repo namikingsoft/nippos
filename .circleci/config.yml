@@ -24,8 +24,7 @@ references:
     run:
       name: Input docker images cache
       command: |
-        set +o pipefail
-        docker load -i ~/caches/images.tar | true
+        docker load -i ~/caches/images.tar || true
 
   - &save_image_cache
     save_cache:
