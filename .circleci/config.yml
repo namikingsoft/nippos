@@ -72,7 +72,7 @@ jobs:
               -e SLACK_USER_ID \
               -e SLACK_CHANNEL_ID \
               -e SLACK_CHANNEL_TYPE \
-              -it nippos clockout --date 2018-07-04 &&\
+              -it nippos clockout &&\
             docker run \
               -e TZ \
               -e PARAGRAPH_JSON \
@@ -85,7 +85,7 @@ jobs:
               -e QIITA_DOMAIN \
               -e QIITA_TITLE \
               -e QIITA_TAGS \
-              -it nippos sh -c 'hh2md --date 2018-07-04 | postm' > /dev/null \
+              -it nippos sh -c 'hh2md | postm' > /dev/null \
             || true
       - *output_image_cache
       - *save_image_cache
