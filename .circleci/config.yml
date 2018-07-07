@@ -13,30 +13,6 @@ references:
       command: |
         docker build -t nippos .
 
-  - &output_image_cache
-    run:
-      name: Output docker images cache
-      command: |
-        mkdir -p ~/caches
-        docker save $(docker images -q) -o ~/caches/images.tar
-
-  - &input_image_cache
-    run:
-      name: Input docker images cache
-      command: |
-        set +o pipefail
-        docker load -i ~/caches/images.tar | true
-
-  - &save_image_cache
-    save_cache:
-      key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
-      paths: ~/caches/images.tar
-
-  - &restore_image_cache
-     restore_cache:
-      key: docker-{{ checksum ".dockerignore" }}-{{ checksum "Dockerfile" }}
-      paths: ~/caches/images.tar
-
 jobs:
 
   build_docker:
@@ -45,21 +21,26 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - *restore_image_cache
-      - *input_image_cache
       - *build_image
-      - *output_image_cache
-      - *save_image_cache
 
-  post:
+  post_if_clockout:
     <<: *docker_container
     steps:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - *restore_image_cache
-      - *input_image_cache
       - *build_image
+      - run:
+          name: Check clockout from slack
+          command: |
+            docker run \
+              -e TZ \
+              -e SLACK_TOKEN \
+              -e SLACK_DOMAIN \
+              -e SLACK_USER_ID \
+              -e SLACK_CHANNEL_ID \
+              -e SLACK_CHANNEL_TYPE \
+              -it nippos sh -c '! clockout --date 2018-07-04'
       - run:
           name: Post qiita from slack
           command: |
@@ -75,28 +56,8 @@ jobs:
               -e QIITA_DOMAIN \
               -e QIITA_TITLE \
               -e QIITA_TAGS \
-              -it nippos sh -c 'hh2md | postm' > /dev/null
-
-  check_clockout:
-    <<: *docker_container
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - *restore_image_cache
-      - *input_image_cache
-      - *build_image
-      - run:
-          name: Check clockout from slack
-          command: |
-            docker run \
-              -e TZ \
-              -e SLACK_TOKEN \
-              -e SLACK_DOMAIN \
-              -e SLACK_USER_ID \
-              -e SLACK_CHANNEL_ID \
-              -e SLACK_CHANNEL_TYPE \
-              -it nippos clockout
+              -it nippos sh -c 'hh2md --date 2018-07-04 | postm' > /dev/null
+          when: on_fail
 
 workflows:
   version: 2
@@ -105,7 +66,7 @@ workflows:
     jobs:
       - build_docker
 
-  clockout:
+  polling:
     triggers:
       - schedule:
           cron: "5,10,15,20,25,30,35,40,45,50,55 * * * *"
@@ -114,7 +75,4 @@ workflows:
               only:
                 - master
     jobs:
-      - check_clockout
-      - post:
-          requires:
-            - check_clockout
+      - post_if_clockout
