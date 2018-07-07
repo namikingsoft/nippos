@@ -13,32 +13,6 @@ references:
       command: |
         docker build -t nippos .
 
-  - &output_image_cache
-    run:
-      name: Output docker images cache
-      command: |
-        mkdir -p ~/caches
-        docker save $(docker images -q) -o ~/caches/images.tar
-
-  - &input_image_cache
-    run:
-      name: Input docker images cache
-      command: |
-        docker load -i ~/caches/images.tar || true
-
-  - &save_image_cache
-    save_cache:
-      key: docker-{{ .Branch }}-{{ .Revision }}
-      paths: ~/caches/images.tar
-
-  - &restore_image_cache
-     restore_cache:
-      keys:
-        - docker-{{ .Branch }}-{{ .Revision }}
-        - docker-{{ .Branch }}-
-        - docker-
-      paths: ~/caches/images.tar
-
 jobs:
 
   build_docker:
@@ -47,11 +21,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - *restore_image_cache
-      - *input_image_cache
       - *build_image
-      - *output_image_cache
-      - *save_image_cache
 
   post_if_clockout:
     <<: *docker_container
@@ -59,8 +29,6 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - *restore_image_cache
-      - *input_image_cache
       - *build_image
       - run:
           name: Post qiita from slack after clockout
@@ -87,8 +55,6 @@ jobs:
               -e QIITA_TAGS \
               -it nippos sh -c 'hh2md | postm' > /dev/null \
             || true
-      - *output_image_cache
-      - *save_image_cache
 
 workflows:
   version: 2
