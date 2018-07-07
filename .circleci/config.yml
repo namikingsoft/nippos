@@ -31,7 +31,7 @@ jobs:
           docker_layer_caching: true
       - *build_image
       - run:
-          name: Check clockout from slack
+          name: Post qiita from slack after clockout
           command: |
             docker run \
               -e TZ \
@@ -40,10 +40,7 @@ jobs:
               -e SLACK_USER_ID \
               -e SLACK_CHANNEL_ID \
               -e SLACK_CHANNEL_TYPE \
-              -it nippos sh -c '! clockout --date 2018-07-04'
-      - run:
-          name: Post qiita from slack
-          command: |
+              -it nippos clockout --date 2018-07-04 &&\
             docker run \
               -e TZ \
               -e PARAGRAPH_JSON \
@@ -56,8 +53,8 @@ jobs:
               -e QIITA_DOMAIN \
               -e QIITA_TITLE \
               -e QIITA_TAGS \
-              -it nippos sh -c 'hh2md --date 2018-07-04 | postm' > /dev/null
-          when: on_fail
+              -it nippos sh -c 'hh2md --date 2018-07-04 | postm' > /dev/null \
+            || true
 
 workflows:
   version: 2
