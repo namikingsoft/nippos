@@ -22,8 +22,8 @@ slack_user_id="${slack_user_id:-$SLACK_USER_ID}"
 slack_channel_id="${slack_channel_id:-$SLACK_CHANNEL_ID}"
 slack_channel_type="${slack_channel_type:-${SLACK_CHANNEL_TYPE:-channels}}"
 slack_date="${slack_date:-${SLACK_DATE:-undef}}"
-slack_clockout_reaction="${slack_clockout_reaction:-${SLACK_CLOCKOUT_reaction:-timer_clock}}"
-slack_clockouted_reaction="${slack_clockouted_reaction:-${SLACK_CLOCKOUTED_reaction:-house}}"
+slack_clockout_reaction="${slack_clockout_reaction:-${SLACK_CLOCKOUT_REACTION:-timer_clock}}"
+slack_clockouted_reaction="${slack_clockouted_reaction:-${SLACK_CLOCKOUTED_REACTION:-house}}"
 
 start_ts=$(
   if [ "undef" = "$slack_date" ]
