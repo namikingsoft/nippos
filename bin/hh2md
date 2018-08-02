@@ -80,7 +80,7 @@ paragraph() {
       | perl -0pe 's|(```\n[\s\S]*?\n```)|\n\1|m'
     )
     if [ "$type" = "timeline" ]; then
-      echo "**${timelabel}** [:slack:](${permalink})"
+      echo "<a href=\"${permalink}\" class=\"timeline\">${timelabel}</a>"
       echo "$text"
       echo
     else
@@ -106,3 +106,59 @@ done
 echo "<details><summary>**クリックで生作業ログを展開**</summary><div>"
 paragraph "timeline" "本日の生ログ" "select(.user != null)"
 echo "</div></details>"
+
+cat << EOS
+
+
+<script>
+Array.prototype.forEach.call(
+  document.querySelectorAll('a.timeline'),
+  function(elm) {
+    elm.style.position = 'absolute';
+    elm.style.top = 0;
+    elm.style.left = '-85px';
+    elm.innerText = elm.innerText.replace(/:\d\d/, '');
+    var initParagraphRec = function (pElm) {
+      pElm.style.position = 'relative';
+      pElm.style.marginLeft = '90px';
+      pElm.style.marginTop = '0';
+      pElm.style.marginBottom = '0';
+      pElm.style.paddingTop = '0';
+      pElm.style.paddingBottom = '1.4em';
+      var line = document.createElement('div');
+      line.style.position = 'absolute';
+      line.style.width = '2px';
+      line.style.top = '0';
+      line.style.bottom = '0';
+      line.style.left = '-22px';
+      line.style.backgroundColor = '#dfdfdf';
+      pElm.appendChild(line);
+      if (pElm.querySelector('a.timeline')) {
+        var circle = document.createElement('div');
+        circle.innerHTML = '●';
+        circle.style.position = 'absolute';
+        circle.style.top = '0';
+        circle.style.left = '-28px';
+        circle.style.color = '#dfdfdf';
+        pElm.appendChild(circle);
+      }
+      var nextElm = pElm.nextElementSibling;
+      if (nextElm && nextElm.querySelector && /^(p|div|blockquote)$/i.test(nextElm.tagName) && !nextElm.querySelector('a.timeline')) {
+        nextElm.style.margin = '0';
+        var wrapElm = document.createElement('p');
+        wrapElm.appendChild(nextElm.cloneNode(true));
+        nextElm.parentNode.replaceChild(wrapElm, nextElm);
+        initParagraphRec(wrapElm);
+      }
+    };
+    initParagraphRec(elm.parentNode);
+  }
+);
+Array.prototype.forEach.call(
+  document.querySelectorAll('a.timeline + br'),
+  function(elm) {
+    elm.remove();
+  }
+);
+</script>
+EOS
