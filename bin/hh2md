@@ -116,7 +116,7 @@ Array.prototype.forEach.call(
     elm.style.position = 'absolute';
     elm.style.top = 0;
     elm.style.left = '-98px';
-    elm.innerText = elm.innerText.replace(/:\d\d/, '');
+    elm.innerText = elm.innerText.replace(/:\d\d$/, '');
     var initParagraphRec = function (pElm) {
       pElm.style.position = 'relative';
       pElm.style.marginLeft = '100px';
