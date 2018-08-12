@@ -43,6 +43,12 @@ history_json_base64=$(
   | jq -r '. | @base64'
 )
 
+users_json_base64=$(
+  curl --silent \
+    -X GET "https://slack.com/api/users.list?token=${slack_token}" \
+  | jq -r '. | @base64'
+)
+
 paragraph() {
   type="$1"
   headline="$2"
@@ -70,6 +76,21 @@ paragraph() {
     timestamp=$(echo "$ts" | sed -E 's|\..*$||')
     timelabel=$(date --date "@${timestamp}" "+%H:%M:%S")
     permalink="https://${slack_domain}/messages/${slack_channel_id}/p$(echo "$ts" | sed -E 's|\.||')"
+    user=$(echo "$row" | base64 --decode | jq -r .user)
+    other_avatar_image=""
+    if [ "$user" != "$slack_user_id" ]; then
+      avatar_image_url=$(
+        echo "$users_json_base64" \
+        | base64 --decode \
+        | jq -r "
+          .members[]
+          | select(.id == \"$user\")
+          | .profile.image_24
+        "
+      )
+      [ "$avatar_image_url" != "null" ] &&\
+        other_avatar_image="<img src=\"${avatar_image_url}\" />"
+    fi
     text=$(
       echo "$row" | base64 --decode \
       | jq -r .text \
@@ -81,7 +102,7 @@ paragraph() {
     )
     if [ "$type" = "timeline" ]; then
       echo "<a href=\"${permalink}\" class=\"timeline\">${timelabel}</a>"
-      echo "$text"
+      echo "${other_avatar_image}${text}"
       echo
     else
       echo "$text"
@@ -139,7 +160,11 @@ Array.prototype.forEach.call(
         iconElm.style.backgroundColor = '#fff';
         iconElm.classList.add('fa');
         circle.style.color = '#555';
-        if (body.indexOf('https://github.com/') > -1) {
+        if (pElm.querySelector('a > img') && /https:\/\/avatars\.slack-edge\.com\//.test(pElm.querySelector('a > img').getAttribute('src'))) {
+          const avatarElm = pElm.querySelector('a > img').parentNode;
+          iconElm.appendChild(avatarElm.cloneNode(true));
+          pElm.removeChild(avatarElm);
+        } else if (body.indexOf('https://github.com/') > -1) {
           iconElm.classList.add('fa-github');
         } else if (/https:\/\/[^.]+\.slack\.com\//.test(body)) {
           iconElm.classList.add('fa-slack');
