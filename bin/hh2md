@@ -9,6 +9,7 @@ until [ "$1" = "--" ]; do
     --userid) slack_user_id="$2" ;;
     --channelid) slack_channel_id="$2" ;;
     --channeltype) slack_channel_type="$2" ;;
+    --headlinereaction) slack_headline_reaction="$2" ;;
     --date) slack_date="$2" ;;
   esac
   shift
@@ -19,6 +20,7 @@ slack_domain="${slack_domain:-$SLACK_DOMAIN}"
 slack_user_id="${slack_user_id:-$SLACK_USER_ID}"
 slack_channel_id="${slack_channel_id:-$SLACK_CHANNEL_ID}"
 slack_channel_type="${slack_channel_type:-${SLACK_CHANNEL_TYPE:-channels}}"
+slack_headline_reaction="${slack_headline_reaction:-${SLACK_HEADLINE_REACTION:-wrench}}"
 slack_date="${slack_date:-${SLACK_DATE:-undef}}"
 
 start_ts=$(
@@ -111,6 +113,7 @@ paragraph() {
   echo
 }
 
+# paragraph.json
 for row in $(echo "$paragraph_json" | jq -r ".[] | @base64"); do
   json=$(echo "$row" | base64 --decode)
   type=$(echo "$json" | jq -r .type)
@@ -122,6 +125,56 @@ for row in $(echo "$paragraph_json" | jq -r ".[] | @base64"); do
     (.reactions[].users[] == \"${slack_user_id}\")
   "
   paragraph "$type" "$title" "select(${filter})"
+done
+
+# paragraph.reaction
+filter_loop=$(
+  echo "$history_json_base64" \
+  | base64 --decode \
+  | jq -r "
+    [
+      .messages
+      | reverse
+      | .[]
+      | select(
+          (.text != null) and
+          (.text != \"\") and
+          (.reactions != null) and
+          (.reactions[].users[] == \"${slack_user_id}\") and
+          (.reactions[].name == \"${slack_headline_reaction}\")
+        )
+    ]
+    | unique_by(.ts)
+    | .[]
+    | @base64
+  "
+)
+for row in $filter_loop; do
+  reaction=$(
+    echo "$row" \
+    | base64 --decode \
+    | jq -r "
+      [
+        .reactions[]
+        | select(
+            (.name != \"${slack_headline_reaction}\") and
+            (.users[] == \"${slack_user_id}\")
+          )
+        | .name
+      ] | first
+    "
+  )
+  if [ "$reaction" != "null" ]; then
+    title=$(echo "$row" | base64 --decode | jq -r .text)
+    filter="
+      (.reactions != null) and
+      (.reactions[].name == \"${reaction}\") and
+      (.reactions | all(.name != \"${slack_headline_reaction}\")) and
+      (.reactions[].users[] == \"${slack_user_id}\")
+    "
+    # TODO: exclude headline reaction
+    paragraph "timeline" "$title" "select(${filter})"
+  fi
 done
 
 echo "<details><summary>**クリックで生作業ログを展開**</summary><div>"

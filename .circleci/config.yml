@@ -40,6 +40,8 @@ jobs:
               -e SLACK_USER_ID \
               -e SLACK_CHANNEL_ID \
               -e SLACK_CHANNEL_TYPE \
+              -e SLACK_CLOCKOUT_REACTION \
+              -e SLACK_CLOCKOUTED_REACTION \
               -it nippos clockout &&\
             docker run \
               -e TZ \
@@ -49,6 +51,7 @@ jobs:
               -e SLACK_USER_ID \
               -e SLACK_CHANNEL_ID \
               -e SLACK_CHANNEL_TYPE \
+              -e SLACK_HEADLINE_REACTION \
               -e QIITA_TOKEN \
               -e QIITA_DOMAIN \
               -e QIITA_TITLE \
