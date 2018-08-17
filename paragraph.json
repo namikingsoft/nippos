@@ -8,15 +8,5 @@
     "type": "timeline",
     "title": "作業内容",
     "reaction": "github"
-  },
-  {
-    "type": "timeline",
-    "title": "ノウハウ",
-    "reaction": "link"
-  },
-  {
-    "type": "timeline",
-    "title": "休み時間",
-    "reaction": "vrsaiko"
   }
 ]

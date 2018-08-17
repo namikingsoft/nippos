@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 
-opt=$(getopt -o "" -l token:,domain:,userid:,channelid:,channeltype:,date: -- "$@")
+opt=$(getopt -o "" -l token:,domain:,userid:,channelid:,channeltype:,date:,date-until: -- "$@")
 eval set -- "$opt"
 until [ "$1" = "--" ]; do
   case $1 in
@@ -11,6 +11,7 @@ until [ "$1" = "--" ]; do
     --channeltype) slack_channel_type="$2" ;;
     --headlinereaction) slack_headline_reaction="$2" ;;
     --date) slack_date="$2" ;;
+    --date-until) slack_date_until="$2" ;;
   esac
   shift
 done
@@ -22,6 +23,7 @@ slack_channel_id="${slack_channel_id:-$SLACK_CHANNEL_ID}"
 slack_channel_type="${slack_channel_type:-${SLACK_CHANNEL_TYPE:-channels}}"
 slack_headline_reaction="${slack_headline_reaction:-${SLACK_HEADLINE_REACTION:-wrench}}"
 slack_date="${slack_date:-${SLACK_DATE:-undef}}"
+slack_date_until="${slack_date_until:-${SLACK_DATE_UNTIL:-undef}}"
 
 start_ts=$(
   if [ "undef" = "$slack_date" ]
@@ -30,9 +32,12 @@ start_ts=$(
   fi
 )
 end_ts=$(
-  if [ "undef" = "$slack_date" ]
-    then date -d "$(date "+%Y-%m-%d") 23:59:59" "+%s"
-    else date -d "${slack_date} 23:59:59" "+%s"
+  if [ "undef" != "$slack_date_until" ]; then
+    date -d "${slack_date_until} 23:59:59" "+%s"
+  elif [ "undef" != "$slack_date" ]; then
+    date -d "${slack_date} 23:59:59" "+%s"
+  else
+    date -d "$(date "+%Y-%m-%d") 23:59:59" "+%s"
   fi
 )
 
