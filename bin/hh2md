@@ -114,6 +114,32 @@ paragraph() {
     else
       echo "$text"
     fi
+    if [ "$(echo "$row" | base64 --decode | jq -r .attachments)" != "null" ]; then
+      attachments_json=$(
+        echo "$row" | base64 --decode \
+        | jq -r '.attachments[] | @base64'
+      )
+      for attach_row in $attachments_json; do
+        # echo "$attach_row" | base64 --decode | jq .
+        title=$(echo "$attach_row" | base64 --decode | jq -r '.title')
+        title_link=$(echo "$attach_row" | base64 --decode | jq -r '.from_url')
+        title_icon=$(echo "$attach_row" | base64 --decode | jq -r '.service_icon')
+        author_name=$(echo "$attach_row" | base64 --decode | jq -r '.author_name')
+        author_subname=$(echo "$attach_row" | base64 --decode | jq -r '.author_subname')
+        author_icon=$(echo "$attach_row" | base64 --decode | jq -r '.author_icon')
+        channel_name=$(echo "$attach_row" | base64 --decode | jq -r '.channel_name')
+        excerpt=$(echo "$attach_row" | base64 --decode | jq -r '.text' | head -n1)
+        if [ "$title" = "null" ]; then
+          [ "$author_name" = "null" ] && author_name="$author_subname"
+          title="$author_name #${channel_name}"
+          title_icon="$author_icon"
+        fi
+        echo "> <img src=\"${title_icon}\" width=\"32\" style=\"vertical-align:middle\"/>　[${title}](${title_link})"
+        echo
+        echo "> ${excerpt}"
+        echo
+      done
+    fi
   done
   echo
 }
