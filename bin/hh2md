@@ -120,7 +120,6 @@ paragraph() {
         | jq -r '.attachments[] | @base64'
       )
       for attach_row in $attachments_json; do
-        # echo "$attach_row" | base64 --decode | jq .
         title=$(echo "$attach_row" | base64 --decode | jq -r '.title')
         title_link=$(echo "$attach_row" | base64 --decode | jq -r '.from_url')
         title_icon=$(echo "$attach_row" | base64 --decode | jq -r '.service_icon')
