@@ -133,10 +133,12 @@ paragraph() {
           title="$author_name #${channel_name}"
           title_icon="$author_icon"
         fi
-        echo "> <img src=\"${title_icon}\" width=\"32\" style=\"vertical-align:middle\"/>　[${title}](${title_link})"
-        echo
-        echo "> ${excerpt}"
-        echo
+        if [ "$title_icon" != "null" ]; then
+          echo "> <img src=\"${title_icon}\" width=\"32\" style=\"vertical-align:middle\"/>　[${title}](${title_link})"
+          echo
+          echo "> ${excerpt}"
+          echo
+        fi
       done
     fi
   done
